@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import google.generativeai as genai
 import json
 import re
@@ -10,6 +11,10 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 app = Flask(__name__)
+CORS(app)  # Add this for Android CORS support
+
+# Add max file size configuration
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 @app.route("/analyze", methods=["POST"])
 def analyze_leaf():
@@ -18,6 +23,11 @@ def analyze_leaf():
             return jsonify({"error": "No image uploaded"}), 400
 
         image_file = request.files["image"]
+        
+        # Check if file is empty
+        if image_file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+            
         image_data = image_file.read()
 
         # Structured prompt
@@ -58,6 +68,5 @@ def analyze_leaf():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
